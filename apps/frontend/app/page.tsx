@@ -251,68 +251,208 @@ export default function HomePage() {
       <main
         style={{
           minHeight: '100vh',
-          display: 'grid',
-          placeItems: 'center',
-          background: 'var(--surface-muted, #f8fafc)',
-          padding: '40px 16px'
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          padding: '40px 16px',
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
-        <section className="canvas-card" style={{ maxWidth: 720, width: '100%', display: 'grid', gap: 24 }}>
-          <header style={{ display: 'grid', gap: 8 }}>
-            <span style={{ textTransform: 'uppercase', letterSpacing: '0.28em', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Selecciona módulo
-            </span>
-            <h1 style={{ margin: 0 }}>¿Cómo quieres trabajar hoy?</h1>
-            <p style={{ margin: 0, color: 'var(--text-muted)', maxWidth: 560 }}>
-              Elige entre diseñar campañas completas con Clarbi o hacer ingeniería inversa de un email para construir prompts
-              reutilizables en Genesy.
+        {/* Decorative background elements */}
+        <div style={{
+          position: 'absolute',
+          top: '-50%',
+          right: '-20%',
+          width: '600px',
+          height: '600px',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+          borderRadius: '50%',
+          pointerEvents: 'none'
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '-30%',
+          left: '-10%',
+          width: '400px',
+          height: '400px',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
+          borderRadius: '50%',
+          pointerEvents: 'none'
+        }} />
+
+        <section 
+          className="canvas-card" 
+          style={{ 
+            maxWidth: 760, 
+            width: '100%', 
+            display: 'grid', 
+            gap: 32,
+            background: 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            position: 'relative',
+            zIndex: 1
+          }}
+        >
+          <header style={{ display: 'grid', gap: 12, textAlign: 'center' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              margin: '0 auto 8px'
+            }}>
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem'
+              }}>
+                ✨
+              </div>
+            </div>
+            <h1 style={{ 
+              margin: 0, 
+              fontSize: '2rem',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              ¿Cómo quieres trabajar hoy?
+            </h1>
+            <p style={{ 
+              margin: '0 auto', 
+              color: 'var(--text-muted)', 
+              maxWidth: 600,
+              fontSize: '1.05rem',
+              lineHeight: 1.6
+            }}>
+              Elige entre diseñar campañas completas con Clarbi o hacer ingeniería inversa de un email para construir prompts reutilizables en Genesy.
             </p>
           </header>
 
           <div style={{ display: 'grid', gap: 16 }}>
             <button
               type="button"
-              className="primary-button"
               style={{
-                justifyContent: 'space-between',
+                all: 'unset',
+                cursor: 'pointer',
                 display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '22px 24px',
-                fontSize: '1.05rem'
+                padding: '28px 32px',
+                fontSize: '1.05rem',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                borderRadius: '16px',
+                boxShadow: '0 8px 24px rgba(102, 126, 234, 0.4)',
+                transition: 'all 0.3s ease',
+                position: 'relative',
+                overflow: 'hidden'
               }}
               onClick={() => handleSelectMode('workspace')}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(102, 126, 234, 0.5)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.4)';
+              }}
             >
-              <span style={{ textAlign: 'left' }}>
-                <strong style={{ display: 'block', fontSize: '1.05rem' }}>Workspace de campañas</strong>
-                <small style={{ display: 'block', opacity: 0.8 }}>
-                  Genera el perfil, valida el caso y obtén los prompts Lookalike o Creative Ideas.
+              <span style={{ textAlign: 'left', flex: 1 }}>
+                <strong style={{ display: 'block', fontSize: '1.25rem', marginBottom: '6px' }}>
+                  🚀 Workspace de campañas
+                </strong>
+                <small style={{ display: 'block', opacity: 0.95, fontSize: '0.95rem', lineHeight: 1.5 }}>
+                  Genera el perfil del cliente, valida el caso de éxito y obtén los prompts para Lookalike o Creative Ideas
                 </small>
               </span>
-              <span aria-hidden>→</span>
+              <span 
+                style={{ 
+                  fontSize: '1.5rem',
+                  marginLeft: '16px',
+                  transition: 'transform 0.3s ease'
+                }}
+                aria-hidden
+              >
+                →
+              </span>
             </button>
 
             <button
               type="button"
-              className="ghost-button"
               style={{
-                justifyContent: 'space-between',
+                all: 'unset',
+                cursor: 'pointer',
                 display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '22px 24px',
+                padding: '28px 32px',
                 fontSize: '1.05rem',
-                border: '1px solid var(--surface-border)'
+                background: 'white',
+                color: '#1a202c',
+                borderRadius: '16px',
+                border: '2px solid #e2e8f0',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+                transition: 'all 0.3s ease',
+                position: 'relative'
               }}
               onClick={() => handleSelectMode('reverse')}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.borderColor = '#667eea';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.borderColor = '#e2e8f0';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08)';
+              }}
             >
-              <span style={{ textAlign: 'left' }}>
-                <strong style={{ display: 'block', fontSize: '1.05rem' }}>Ingeniería inversa de email</strong>
-                <small style={{ display: 'block', opacity: 0.8 }}>
-                  Analiza un email existente para convertir sus variables en prompts con instrucciones claras.
+              <span style={{ textAlign: 'left', flex: 1 }}>
+                <strong style={{ display: 'block', fontSize: '1.25rem', marginBottom: '6px' }}>
+                  🔄 Ingeniería inversa de email
+                </strong>
+                <small style={{ display: 'block', color: '#64748b', fontSize: '0.95rem', lineHeight: 1.5 }}>
+                  Analiza un email existente y convierte sus variables en prompts con instrucciones claras y ejemplos
                 </small>
               </span>
-              <span aria-hidden>→</span>
+              <span 
+                style={{ 
+                  fontSize: '1.5rem',
+                  marginLeft: '16px',
+                  transition: 'transform 0.3s ease',
+                  color: '#667eea'
+                }}
+                aria-hidden
+              >
+                →
+              </span>
             </button>
           </div>
+
+          <footer style={{ 
+            textAlign: 'center', 
+            paddingTop: '8px',
+            borderTop: '1px solid #e2e8f0',
+            marginTop: '8px'
+          }}>
+            <p style={{ 
+              margin: 0, 
+              fontSize: '0.85rem', 
+              color: '#94a3b8'
+            }}>
+              Potenciado por OpenAI GPT-4 • ClarBI v0.1.0
+            </p>
+          </footer>
         </section>
       </main>
     );
