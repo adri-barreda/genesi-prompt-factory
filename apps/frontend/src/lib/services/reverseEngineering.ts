@@ -65,8 +65,8 @@ export async function reverseEngineerEmailVariables(emailBody: string, { languag
     .map((p, idx) => `${idx + 1}. Placeholder: ${p.placeholder}\n   Contexto: "${p.snippet}"`)
     .join('\n\n');
 
-  const user = `Misión
-Analizar un email template y generar prompts específicos para cada placeholder dinámico detectado.
+  const user = `Paso 1. Identificación de variables
+Lee el correo recibido como input. Detecta todas las frases que contengan { }. Cada frase con { } se considera una variable independiente.
 
 Email a analizar
 """
@@ -76,12 +76,33 @@ ${emailBody}
 Placeholders detectados
 ${placeholderList}
 
+Paso 2. Generación de prompts
+Por cada variable identificada, genera un prompt completo con la siguiente estructura:
+
+Estructura del prompt
+
+Misión
+Explica cuál es el objetivo de la frase donde está la variable. Siempre termina la misión con: "La información debe ser obtenida en {análisis}".
+
 Instrucciones
-Para cada placeholder detectado:
-1. Crear un prompt específico que genere contenido para ese placeholder
-2. El prompt debe incluir: misión, instrucciones paso a paso, condiciones específicas, formato de salida
-3. Incluir 1-3 ejemplos realistas de salidas válidas
-4. El prompt debe estar en ${language === 'es-ES' ? 'español' : 'inglés'} y ser ejecutable directamente
+Incluye siempre la plantilla exacta de la frase que contiene la variable. Después, indica cómo debe sustituirse la variable, explicando con claridad qué representa en el contexto de la frase. Para ello, debes basarte en la lógica de los ejemplos.
+
+Ejemplo de explicación
+Frase con variable: "Vi en vuestra web que {x} y me recordó a uno de nuestros clientes, líder en gases industriales y medicinales."
+En este caso, {x} corresponde a una breve propuesta de valor de la empresa. Las instrucciones quedarían así:
+Usa la plantilla exacta: "Vi en vuestra web que {x} y me recordó a uno de nuestros clientes, líder en gases industriales y medicinales."
+Sustituye {x}: por una frase que describa lo que hace la empresa, tal como se identifica en {análisis}.
+
+En cada caso, identifica primero qué significa la variable y, con esa interpretación, construye las instrucciones siguiendo este mismo esquema.
+
+Condiciones
+Define reglas de estilo, tono y límite de palabras en base a los ejemplos dados para esa variable. Cuenta las palabras de los ejemplos y define un máximo coherente (nunca más de 28). Ajusta el tono según el estilo de los ejemplos (ej. cercano, natural, directo, etc.). Ajusta el tipo de frase (ej. simple, sin tecnicismos innecesarios). Siempre añade: No inventar datos.
+
+Output
+"Solo frase final".
+
+Ejemplos
+Proporciona tres ejemplos de cómo quedaría esa frase correctamente construida.
 
 Formato de salida requerido
 Devuelve un JSON con la siguiente estructura exacta:
@@ -92,11 +113,11 @@ Devuelve un JSON con la siguiente estructura exacta:
       "placeholder": "{Placeholder original}",
       "source_snippet": "Línea completa donde aparece el placeholder",
       "goal": "Qué debe lograr este placeholder en el email",
-      "mission": "Descripción concisa de la misión del prompt",
-      "instructions": "Instrucciones paso a paso para generar el contenido",
-      "conditions": ["Condición 1", "Condición 2", "etc."],
-      "output": "Descripción del formato esperado de salida",
-      "sample_outputs": ["Ejemplo 1", "Ejemplo 2", "etc."]
+      "mission": "Descripción concisa de la misión del prompt terminando con 'La información debe ser obtenida en {análisis}'",
+      "instructions": "Instrucciones paso a paso siguiendo el esquema de plantilla exacta y sustitución de variable",
+      "conditions": ["Condición 1", "Condición 2", "No inventar datos", "etc."],
+      "output": "Solo frase final",
+      "sample_outputs": ["Ejemplo 1", "Ejemplo 2", "Ejemplo 3"]
     }
   ]
 }
