@@ -414,7 +414,7 @@ export default function HomePage() {
                         type="button"
                         onClick={() =>
                           navigator.clipboard
-                            .writeText(variable.prompt_instructions)
+                            .writeText(variable.prompt_text)
                             .catch(() => setReverseError('No se pudo copiar las instrucciones.'))
                         }
                       >
@@ -425,7 +425,7 @@ export default function HomePage() {
                       <small style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Fragmento original</small>
                       <p style={{ margin: '4px 0 0 0', color: 'var(--text-primary)' }}>{variable.source_snippet}</p>
                     </div>
-                    <pre>{variable.prompt_instructions}</pre>
+                    <pre>{variable.prompt_text}</pre>
                     {variable.sample_outputs.length ? (
                       <div style={{ marginTop: 12 }}>
                         <small style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Ejemplos</small>

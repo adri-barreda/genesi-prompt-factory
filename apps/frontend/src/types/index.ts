@@ -44,7 +44,11 @@ export interface ReverseVariable {
   placeholder: string;
   source_snippet: string;
   goal: string;
-  prompt_instructions: string;
+  mission: string;
+  instructions: string;
+  conditions: string[];
+  output: string;
+  prompt_text: string;
   sample_outputs: string[];
 }
 
