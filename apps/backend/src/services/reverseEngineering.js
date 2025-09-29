@@ -73,24 +73,44 @@ export async function reverseEngineerEmailVariables(emailBody, { language = 'es-
   const system =
     'Eres estratega de copywriting especializado en emails de prospección B2B. Devuelves JSON válido, en castellano, sin inventar datos.';
 
-  const user = `Misión
-Analizar el siguiente email base y convertir cada marcador entre llaves ({}) en un bloque de prompt con la estructura solicitada.
+  const user = `Paso 1. Identificación de variables 
+Lee el correo recibido como input. Detecta todas las frases que contengan { }. Cada frase con { } se considera una variable independiente. 
 
 Email base
 """${normalizedEmail}"""
 
-Instrucciones
-- Identifica todos los marcadores envueltos entre llaves {}. Cada marcador representa una variable independiente.
-- Procesa EXCLUSIVAMENTE los placeholders listados en la sección "Placeholders detectados". No combines marcadores ni inventes placeholders adicionales.
-- Para cada marcador detectado:
-  • Localiza la frase completa donde aparece y úsala como fuente.
-  • Explica el objetivo del marcador (para qué sirve en el email) en la clave "goal".
-  • Genera una "mission" redactada en castellano que describa qué debe conseguir la frase. Debe terminar literalmente con: "La información debe ser obtenida en {análisis}."
-  • En la clave "instructions" incluye un texto en tres párrafos breves: primero presenta la frase exacta con la variable (prefijo "Usa la plantilla exacta:"), después explica cómo sustituir la variable describiendo qué representa, y finalmente detalla orientaciones adicionales necesarias.
-  • La clave "conditions" debe contener al menos dos reglas concretas sobre estilo, tono, extensión máxima de palabras o restricciones similares.
-  • La clave "output" debe indicar siempre cómo debe entregarse el resultado. Usa literalmente "Solo frase final" salvo que el contexto exija matizarlo.
-  • Proporciona exactamente tres ejemplos plausibles en "sample_outputs" que sigan las instrucciones y la frase original sin inventar datos ajenos al email.
-- Mantén todo en castellano neutral, sin tecnicismos innecesarios y sin añadir comentarios extra.
+Paso 2. Generación de prompts 
+Por cada variable identificada, genera un prompt completo con la siguiente estructura: 
+
+Estructura del prompt 
+
+Misión 
+Explica cuál es el objetivo de la frase donde está la variable. Siempre termina la misión con: "La información debe ser obtenida en {análisis}". 
+
+Instrucciones 
+Incluye siempre la plantilla exacta de la frase que contiene la variable. Después, indica cómo debe sustituirse la variable, explicando con claridad qué representa en el contexto de la frase. Para ello, debes basarte en la lógica de los ejemplos. 
+
+Ejemplo de explicación 
+Frase con variable: "Vi en vuestra web que {x} y me recordó a uno de nuestros clientes, líder en gases industriales y medicinales." 
+En este caso, {x} corresponde a una breve propuesta de valor de la empresa. Las instrucciones quedarían así: 
+Usa la plantilla exacta: "Vi en vuestra web que {x} y me recordó a uno de nuestros clientes, líder en gases industriales y medicinales." 
+Sustituye {x}: por una frase que describa lo que hace la empresa, tal como se identifica en {análisis}. 
+
+En cada caso, identifica primero qué significa la variable y, con esa interpretación, construye las instrucciones siguiendo este mismo esquema. 
+
+Condiciones 
+Define reglas de estilo, tono y límite de palabras en base a los ejemplos dados para esa variable. Cuenta las palabras de los ejemplos y define un máximo coherente (nunca más de 28). Ajusta el tono según el estilo de los ejemplos (ej. cercano, natural, directo, etc.). Ajusta el tipo de frase (ej. simple, sin tecnicismos innecesarios). Siempre añade: No inventar datos. Output "Solo frase final". 
+
+Ejemplos 
+Proporciona tres ejemplos de cómo quedaría esa frase correctamente construida. 
+
+Ejemplo de un prompt bien hecho 
+Misión 
+Generar una frase personalizada usando la información de Análisis Clarbi. Instrucciones Si hay al menos un caso de éxito, usa el primero con la estructura: Vi que trabajasteis con (caso de éxito), ayudándoles en (breve logro), y me pregunté si hacéis campañas outbound para conseguir más clientes como ellos. Sustituye (caso de éxito): por el nombre del caso de éxito. Sustituye (breve logro): por lo que consiguieron hacer con ese caso de éxito. La frase final debe tener entre 22 y 28 palabras máximo. En caso de que se trate de un testimonio y no de un caso de éxito, debes siempre mencionar el nombre de pila y la empresa. Ejemplo: Ignacio de Alonso & Lledó. Si no hay caso de éxito pero sí un competidor con puntuación igual o mayor a 8/10, usa: He visto que os comparan con (competidor) y me preguntaba cómo estáis logrando captar clientes con menor coste que ellos. Sustituye (competidor): por el nombre del competidor con mayor puntuación. La frase final debe tener entre 22 y 28 palabras máximo. Si no hay caso de éxito ni competidor con puntuación ≥ 8/10, usa: De qué forma estáis generando nuevas oportunidades con (target principal) interesados en (lo que hace la empresa de forma breve)? Sustituye (target principal): por el target principal de la empresa. Sustituye (lo que hace la empresa de forma breve): por su propuesta de valor breve. La frase final debe tener entre 22 y 28 palabras máximo. Condiciones Estilo conversacional y natural. Solo una frase entre 22 y 28 palabras. No inventar datos. Output La frase final, sin explicaciones adicionales. Ejemplos Caso de éxito: Vi que trabajasteis con Cemex, ayudándoles a simplificar productos complejos y aumentar ventas, y me pregunté si hacéis campañas outbound para conseguir más clientes como ellos. Caso de éxito (testimonio): Vi que trabajasteis con Ignacio de Alonso & Lledó para ahorrar tiempo y evitar errores, y me pregunté si hacéis outbound para captar más clientes como ellos. Competidor: He visto que os comparan con Holded y me preguntaba cómo estáis logrando captar clientes con menor coste que ellos. Fallback: De qué forma estáis generando nuevas oportunidades con autónomos interesados en simplificar su gestión fiscal y ahorrar tiempo en el papeleo administrativo? 
+
+Ejemplo de otro prompt bien hecho 
+Misión 
+Generar una frase personalizada en base a la información en Análisis de seguros. Instrucciones Usa siempre esta plantilla: "Revisando vuestra web me encontré con (producto) dirigido al público adulto, y me pregunté qué estrategia de marketing estáis utilizando para captar estos clientes." Sustituye (producto): por el nombre del seguro con mayor puntuación de Análisis de seguros. Si el seguro tiene un nombre propio oficial (ejemplo: "GesSalud", "VidaGes"), usa ese nombre tal cual. Si no tiene nombre propio, escribe: vuestro seguro de [tipo de seguro]. Condiciones La frase final debe tener entre 20 y 25 palabras máximo. No inventar información, usa solo lo que aparezca en la página de la empresa. La salida debe ser únicamente la frase final, sin comentarios adicionales. Output Una sola frase siguiendo la plantilla anterior. Ejemplo Revisando vuestra web me encontré con GaesVida dirigido al público adulto, y me pregunté qué estrategia de marketing estáis utilizando para captar estos clientes.
 
 Placeholders detectados
 ${placeholderList}
