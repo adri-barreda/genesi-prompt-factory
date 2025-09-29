@@ -1,6 +1,6 @@
 import { DiscoveryData, ProfileResponse, PromptsResponse, CampaignListResponse } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 
 export class ApiError extends Error {
   constructor(message: string, public status?: number) {
@@ -57,34 +57,6 @@ const mockPrompts = {
 };
 
 async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  // Demo mode: return mock data when backend is not available
-  if (API_BASE_URL.includes('localhost') && typeof window !== 'undefined') {
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-        ...options,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new ApiError(
-          errorData?.error || `HTTP ${response.status}: ${response.statusText}`,
-          response.status
-        );
-      }
-
-      return await response.json();
-    } catch (error) {
-      // Fallback to demo mode if backend is not available
-      console.warn('Backend not available, using demo mode');
-      return handleDemoMode<T>(endpoint, options);
-    }
-  }
-
-  // Production mode or when backend is available
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
@@ -106,6 +78,11 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
+    }
+    // If OpenAI is not configured, fallback to demo mode
+    if (error instanceof Error && error.message.includes('OPENAI_API_KEY')) {
+      console.warn('OpenAI not configured, using demo mode');
+      return handleDemoMode<T>(endpoint, options);
     }
     throw new ApiError('Network error or unable to reach server');
   }
