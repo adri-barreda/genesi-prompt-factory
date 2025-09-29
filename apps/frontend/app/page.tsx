@@ -398,10 +398,10 @@ export default function HomePage() {
             </div>
           )}
 
-          {reverseResults ? (
-            reverseResults.variables.length ? (
+          {reverseResults && reverseResults.data?.variables ? (
+            reverseResults.data.variables.length ? (
               <div className="canvas-prompts-grid">
-                {reverseResults.variables.map((variable: ReverseVariable) => (
+                {reverseResults.data.variables.map((variable: ReverseVariable) => (
                   <article className="canvas-prompt-card" key={variable.variable_name}>
                     <header>
                       <div>

@@ -53,7 +53,17 @@ export interface ReverseVariable {
 }
 
 export interface ReverseEngineeringResponse {
-  variables: ReverseVariable[];
+  success: boolean;
+  data: {
+    email: string;
+    language: string;
+    placeholders: Array<{
+      placeholder: string;
+      inner: string;
+      snippet: string;
+    }>;
+    variables: ReverseVariable[];
+  };
 }
 
 export interface Campaign {

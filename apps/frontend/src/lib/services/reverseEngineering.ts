@@ -106,10 +106,16 @@ Devuelve solo el JSON solicitado.`;
   const rawResult = await createJsonCompletion({ system, user });
   const validatedResult = reverseEngineeringSchema.parse(rawResult);
 
+  // Add prompt_text to each variable
+  const variablesWithPrompts = validatedResult.variables.map(variable => ({
+    ...variable,
+    prompt_text: `Misión: ${variable.mission}\n\nInstrucciones:\n${variable.instructions}\n\nCondiciones:\n${variable.conditions.map(c => `- ${c}`).join('\n')}\n\nFormato de salida:\n${variable.output}\n\nEjemplos:\n${variable.sample_outputs.map((ex, i) => `${i + 1}. ${ex}`).join('\n')}`
+  }));
+
   return {
     email: emailBody,
     language,
     placeholders,
-    variables: validatedResult.variables
+    variables: variablesWithPrompts
   };
 }
