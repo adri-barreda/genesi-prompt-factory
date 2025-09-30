@@ -4,7 +4,8 @@ import { reverseEngineerEmailVariables } from '@/lib/services/reverseEngineering
 
 const analyzeSchema = z.object({
   email_body: z.string().min(1, 'Email body is required'),
-  language: z.string().optional().default('es-ES')
+  language: z.string().optional().default('es-ES'),
+  mode: z.enum(['variables', 'analysis']).optional().default('variables')
 });
 
 export async function POST(request: NextRequest) {
@@ -19,9 +20,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { email_body, language } = parseResult.data;
+    const { email_body, language, mode } = parseResult.data;
 
-    const result = await reverseEngineerEmailVariables(email_body, { language });
+    const result = await reverseEngineerEmailVariables(email_body, { language, mode });
 
     return NextResponse.json({
       success: true,

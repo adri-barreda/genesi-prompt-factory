@@ -8,6 +8,7 @@ import {
   Campaign,
   ClientProfile,
   PromptPackage,
+  ReverseEngineeringMode,
   ReverseEngineeringResponse,
   ReverseVariable
 } from '@/types';
@@ -34,6 +35,12 @@ export default function HomePage() {
   const [reverseResults, setReverseResults] = useState<ReverseEngineeringResponse | null>(null);
   const [isAnalyzingEmail, setIsAnalyzingEmail] = useState(false);
   const [reverseError, setReverseError] = useState<string | null>(null);
+  const [reverseMode, setReverseMode] = useState<ReverseEngineeringMode>('variables');
+
+  const REVERSE_MODE_LABELS: Record<ReverseEngineeringMode, string> = {
+    variables: 'Plantillas por variable',
+    analysis: 'Prompt maestro {análisis}'
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +91,11 @@ export default function HomePage() {
     setError(null);
     setReverseError(null);
   };
+
+  useEffect(() => {
+    setReverseResults(null);
+    setReverseError(null);
+  }, [reverseMode]);
 
   const handleReturnToSelector = () => {
     setActiveMode(null);
@@ -214,7 +226,8 @@ export default function HomePage() {
         },
         body: JSON.stringify({
           email_body: reverseEmail,
-          language: clientProfile?.constraints.language ?? 'es-ES'
+          language: clientProfile?.constraints.language ?? 'es-ES',
+          mode: reverseMode
         })
       });
 
@@ -223,8 +236,25 @@ export default function HomePage() {
         throw new Error(data?.error || 'Error al analizar el email');
       }
 
-      const data: ReverseEngineeringResponse = await response.json();
-      setReverseResults(data);
+      const payload = await response.json();
+      const fallbackMode = payload.mode;
+      const normalizedMode: ReverseEngineeringMode = fallbackMode === 'analysis' || fallbackMode === 'variables'
+        ? fallbackMode
+        : reverseMode;
+      const normalized: ReverseEngineeringResponse = 'data' in payload
+        ? payload
+        : {
+            success: true,
+            data: {
+              email: payload.email ?? reverseEmail,
+              language: payload.language ?? (clientProfile?.constraints.language ?? 'es-ES'),
+              placeholders: Array.isArray(payload.placeholders) ? payload.placeholders : [],
+              variables: Array.isArray(payload.variables) ? payload.variables : [],
+              analysis_prompt: typeof payload.analysis_prompt === 'string' ? payload.analysis_prompt : '',
+              mode: normalizedMode
+            }
+          };
+      setReverseResults(normalized);
     } catch (err) {
       setReverseResults(null);
       setReverseError(err instanceof Error ? err.message : 'Error desconocido al analizar el email');
@@ -351,17 +381,21 @@ export default function HomePage() {
                   padding: '6px 12px',
                   borderRadius: '999px',
                   border: '1px solid var(--surface-border)',
-                  background: 'rgba(226,232,240,0.6)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.82rem'
-                }}
-              >
-                {isAnalyzingEmail ? 'Analizando email…' : reverseResults ? 'Resultados disponibles' : 'Pendiente de análisis'}
-              </span>
-              <button type="button" className="ghost-button" onClick={() => {
-                setReverseEmail('');
-                setReverseResults(null);
-                setReverseError(null);
+          background: 'rgba(226,232,240,0.6)',
+          color: 'var(--text-primary)',
+          fontSize: '0.82rem'
+        }}
+      >
+        {isAnalyzingEmail
+          ? 'Analizando email…'
+          : reverseResults
+            ? `Resultados · ${REVERSE_MODE_LABELS[reverseResults.data.mode]}`
+            : `Modo activo · ${REVERSE_MODE_LABELS[reverseMode]}`}
+      </span>
+      <button type="button" className="ghost-button" onClick={() => {
+        setReverseEmail('');
+        setReverseResults(null);
+        setReverseError(null);
               }}>
                 Limpiar email
               </button>
@@ -378,6 +412,23 @@ export default function HomePage() {
                 onChange={(event) => setReverseEmail(event.target.value)}
                 placeholder="Pega aquí el email con variables entre llaves {así}"
               />
+            </div>
+            <div className="canvas-field">
+              <label>Tipo de reverse engineering</label>
+              <select
+                className="canvas-input"
+                value={reverseMode}
+                onChange={(event) => setReverseMode(event.target.value as ReverseEngineeringMode)}
+              >
+                {Object.entries(REVERSE_MODE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <small style={{ marginTop: 4, display: 'block', color: 'var(--text-muted)' }}>
+                Cambia el modo para generar solo el prompt maestro o las plantillas por variable.
+              </small>
             </div>
           </div>
 
@@ -398,8 +449,40 @@ export default function HomePage() {
             </div>
           )}
 
-          {reverseResults && reverseResults.data?.variables ? (
-            reverseResults.data.variables.length ? (
+          {reverseResults?.data ? (
+            reverseResults.data.mode === 'analysis' ? (
+              reverseResults.data.analysis_prompt ? (
+                <div className="canvas-prompts-grid">
+                  <article className="canvas-prompt-card" key="analysis-prompt">
+                    <header>
+                      <div>
+                        <div className="canvas-prompt-card__tag">{`{análisis}`}</div>
+                        <h3 style={{ margin: '6px 0 4px 0' }}>Prompt maestro de análisis</h3>
+                        <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+                          Guía para validar el fit y extraer la información clave antes de personalizar los mensajes.
+                        </p>
+                      </div>
+                      <button
+                        className="ghost-button"
+                        type="button"
+                        onClick={() =>
+                          navigator.clipboard
+                            .writeText(reverseResults.data.analysis_prompt)
+                            .catch(() => setReverseError('No se pudo copiar las instrucciones.'))
+                        }
+                      >
+                        Copiar instrucciones
+                      </button>
+                    </header>
+                    <pre>{reverseResults.data.analysis_prompt}</pre>
+                  </article>
+                </div>
+              ) : (
+                <p className="canvas-card__subtitle" style={{ margin: 0 }}>
+                  No se pudo generar el prompt maestro. Revisa el email y vuelve a intentarlo.
+                </p>
+              )
+            ) : reverseResults.data.variables.length ? (
               <div className="canvas-prompts-grid">
                 {reverseResults.data.variables.map((variable: ReverseVariable) => (
                   <article className="canvas-prompt-card" key={variable.variable_name}>
@@ -446,7 +529,7 @@ export default function HomePage() {
             )
           ) : (
             <p className="canvas-card__subtitle" style={{ margin: 0 }}>
-              Genera las instrucciones para ver aquí las variables detectadas y los prompts recomendados.
+              Genera las instrucciones para ver aquí los resultados del modo seleccionado.
             </p>
           )}
         </section>

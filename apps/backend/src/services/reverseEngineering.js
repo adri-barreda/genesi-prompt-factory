@@ -44,7 +44,26 @@ const reverseEngineeringSchema = z.object({
   variables: z.array(variableSchema).default([])
 });
 
-export async function reverseEngineerEmailVariables(emailBody, { language = 'es-ES' } = {}) {
+const analysisPromptSchema = z.object({
+  analysis_prompt: z.string().min(1)
+});
+
+const SUPPORTED_MODES = ['variables', 'analysis'];
+
+function normalizeMode(rawMode) {
+  if (!rawMode) {
+    return 'variables';
+  }
+
+  const lower = String(rawMode).toLowerCase();
+  if (!SUPPORTED_MODES.includes(lower)) {
+    throw new Error(`Modo de reverse engineering no soportado: ${rawMode}`);
+  }
+
+  return lower;
+}
+
+export async function reverseEngineerEmailVariables(emailBody, { language = 'es-ES', mode } = {}) {
   if (!config.openai.apiKey) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
@@ -53,6 +72,8 @@ export async function reverseEngineerEmailVariables(emailBody, { language = 'es-
   if (!normalizedEmail) {
     throw new Error('Email body is required');
   }
+
+  const selectedMode = normalizeMode(mode);
 
   const placeholders = extractPlaceholderSnippets(normalizedEmail);
   if (placeholders.length === 0) {
@@ -189,7 +210,145 @@ Devuelve solo el JSON solicitado.`;
     })
     .filter(Boolean);
 
+  let analysisPrompt = '';
+
+  if (selectedMode === 'analysis') {
+    const variablesSummary = JSON.stringify(
+      orderedVariables.map((variable) => ({
+        placeholder: variable.placeholder,
+        goal: variable.goal,
+        mission: variable.mission,
+        instructions: variable.instructions,
+        conditions: variable.conditions,
+        sample_outputs: variable.sample_outputs
+      })),
+      null,
+      2
+    );
+
+    const placeholderNames = placeholders.map((item) => item.placeholder).join(', ') || 'sin_placeholders';
+
+    const analysisSystem =
+      'Eres estratega de copywriting especializado en emails de prospección B2B. Devuelves JSON válido, en castellano, sin inventar datos.';
+
+    const analysisUser = `Misión
+Crear un prompt llamado {análisis} que combine información fija y variable. Debe validar si la empresa es apta según el tipo definido en el input y, en caso afirmativo, extraer la información que corresponda según las variables identificadas en los correos.
+
+Instrucciones
+Sigue estas instrucciones para redactar el prompt.
+
+Construye las instrucciones del prompt
+Para cada empresa, analiza su web y devuelve:
+- Qué hace la empresa en detalle.
+- Su propuesta de valor.
+- Qué productos o servicios comercializa.
+- Con esta información determina si la empresa es apta según el tipo definido en el input.
+- Solo incluye la información adicional de las variables que aparezcan explícitamente en los correos de entrada.
+- Identifica las variables presentes en los correos ${placeholderNames}.
+- A partir de las variables interpretadas, determina qué información buscan rellenar (ej. casos de éxito, competidores, target, propuesta de valor, etc.).
+- En caso de que en las variables existan competidores o casos de éxito deberás matizar lo siguiente:
+  • Competidores: no se sacan de la web, deben inferirse de conocimiento general y puntuarse del 1 al 10 por similitud.
+  • Casos de éxito: si no se encuentran, buscar testimonios y dar siempre nombre de la persona y la empresa.
+
+Output
+Misión
+Instrucciones
+Información básica a recopilar
+Evaluar si es una empresa fit
+Información adicional (la de las variables)
+Instrucciones adicionales
+Output
+
+Output esperado
+- 🟢 Apto / 🔴 No apto / 🟠 No sé + motivo breve.
+- Qué hace la empresa.
+- Propuesta de valor.
+- Productos y servicios que comercializa.
+- Variable: todo lo que se detecte de las variables de los textos.
+
+Ejemplo de un prompt creado
+Misión
+ Analizar la web indicada en Website y devolver respuestas claras y detalladas a cinco puntos clave sobre la empresa.
+Instrucciones
+ Analiza la web y explica con detalle:
+A qué se dedica la empresa.
+
+Cuál es su propuesta de valor (a quién ayuda y cómo).
+
+Quién es su ICP (perfil de cliente ideal).
+
+Quién es su buyer persona.
+
+Identifica si la empresa es:
+
+SaaS (software como servicio).
+
+Empresa de servicios B2B.
+
+Ninguna de las anteriores (si es este caso, deja de buscar más información).
+
+Indica si la empresa ofrece servicios B2B o B2C.
+
+Si es B2C, deja de buscar más información.
+
+Busca casos de éxito: no solo en la sección de "Clientes" o "Casos de éxito", sino también en otras partes de la web como blog, prensa o páginas de producto/servicios. Para cada uno indica:
+
+Con quién trabajó.
+
+Qué problema o reto resolvieron.
+
+Cómo lo resolvieron.
+
+Resultados obtenidos (si existen).
+
+Si no encuentras casos de éxito, busca testimonios, siempre mencionando el nombre de la empresa cliente.
+
+Identifica 3 competidores, basándote en conocimiento general (no en la propia web). Explícalos brevemente. Puntúalos del 1 al 10 según similitud con la empresa analizada. Ordénalos de mayor a menor puntuación.
+
+Instrucciones adicionales
+Si no encuentras algo, escribe "No encontrado".
+
+Usa solo información disponible en la web salvo en el punto de competidores.
+
+Estilo claro, conciso y sin guiones.
+
+Output
+ Devuelve el resultado final en cinco apartados:
+🟢 Sí SaaS o empresa de servicios / 🔴 No SaaS ni empresa de servicios + motivo breve, añadiendo si es B2B o B2C.
+
+A qué se dedica la empresa y su propuesta de valor.
+
+Casos de éxito: con quién ayudó, qué reto resolvió, cómo y resultados conseguidos.
+
+Competidores puntuados y ordenados de mayor a menor.
+
+Público objetivo: ICP y buyer persona.
+
+Contexto disponible
+Email base
+"""${normalizedEmail}"""
+
+Variables interpretadas (JSON)
+${variablesSummary}
+
+Formato de salida JSON
+{
+  "analysis_prompt": "..."
+}
+
+Devuelve solo el JSON solicitado.`;
+
+    const rawAnalysis = await createJsonCompletion({ system: analysisSystem, user: analysisUser });
+    const { analysis_prompt: analysisPromptRaw } = analysisPromptSchema.parse(rawAnalysis);
+    analysisPrompt = analysisPromptRaw.trim();
+  }
+
   return {
-    variables: orderedVariables
+    mode: selectedMode,
+    email: normalizedEmail,
+    language,
+    placeholders,
+    variables: selectedMode === 'analysis' ? [] : orderedVariables,
+    analysis_prompt: selectedMode === 'analysis' ? analysisPrompt : ''
   };
 }

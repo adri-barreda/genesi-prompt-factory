@@ -3,7 +3,8 @@ import { reverseEngineerEmailVariables } from '../services/reverseEngineering.js
 
 const bodySchema = z.object({
   email_body: z.string().min(10, 'email_body must contain at least 10 characters'),
-  language: z.string().optional()
+  language: z.string().optional(),
+  mode: z.enum(['variables', 'analysis']).optional()
 });
 
 export default async function reverseEngineeringRoutes(fastify) {
@@ -17,9 +18,9 @@ export default async function reverseEngineeringRoutes(fastify) {
       });
     }
 
-    const { email_body: emailBody, language } = parseResult.data;
+    const { email_body: emailBody, language, mode } = parseResult.data;
 
-    const result = await reverseEngineerEmailVariables(emailBody, { language });
+    const result = await reverseEngineerEmailVariables(emailBody, { language, mode });
 
     return reply.send(result);
   });

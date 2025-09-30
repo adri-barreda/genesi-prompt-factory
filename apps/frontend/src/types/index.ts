@@ -39,6 +39,8 @@ export interface PromptPackage {
   }>;
 }
 
+export type ReverseEngineeringMode = 'variables' | 'analysis';
+
 export interface ReverseVariable {
   variable_name: string;
   placeholder: string;
@@ -63,6 +65,8 @@ export interface ReverseEngineeringResponse {
       snippet: string;
     }>;
     variables: ReverseVariable[];
+    analysis_prompt: string;
+    mode: ReverseEngineeringMode;
   };
 }
 
